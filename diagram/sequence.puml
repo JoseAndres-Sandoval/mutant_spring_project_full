@@ -1,0 +1,19 @@
+
+@startuml
+participant Client
+participant MutantController
+participant MutantService
+participant MutantDetector
+participant DnaRecordRepository
+
+Client -> MutantController: POST /mutant { dna }
+MutantController -> MutantService: verifyAndSave(dna)
+MutantService -> DnaRecordRepository: findByDnaHash(hash)
+alt not found
+    MutantService -> MutantDetector: isMutant(dna)
+    MutantDetector --> MutantService: result
+    MutantService -> DnaRecordRepository: save(record)
+end
+MutantService --> MutantController: isMutant result
+MutantController --> Client: 200 or 403
+@enduml
