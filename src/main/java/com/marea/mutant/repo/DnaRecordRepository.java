@@ -1,7 +1,7 @@
 
 package com.marea.mutant.repo;
 
-import com.marea.mutant.model.DnaRecord;
+import com.marea.mutant.entity.DnaRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 

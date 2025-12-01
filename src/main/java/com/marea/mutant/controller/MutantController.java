@@ -1,4 +1,3 @@
-
 package com.marea.mutant.controller;
 
 import com.marea.mutant.dto.DnaRequest;
@@ -8,23 +7,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 @RestController
 public class MutantController {
 
     private final MutantService service;
 
-    public MutantController(MutantService service) { this.service = service; }
+    public MutantController(MutantService service) {
+        this.service = service;
+    }
 
     @PostMapping(path = "/mutant/", consumes = "application/json")
-    public ResponseEntity<?> mutant(@RequestBody DnaRequest req) {
-        try {
-            boolean isMutant = service.verifyAndSave(req.getDna());
-            if (isMutant) return ResponseEntity.ok().build();
-            else return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+    public ResponseEntity<Void> mutant(@Valid @RequestBody DnaRequest req) {
+        // La validación @Valid ocurre antes de entrar aquí.
+        // Si el ADN es inválido, el GlobalExceptionHandler devolverá 400 Bad Request.
+
+        boolean isMutant = service.verifyAndSave(req.getDna());
+
+        if (isMutant) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
     }
 

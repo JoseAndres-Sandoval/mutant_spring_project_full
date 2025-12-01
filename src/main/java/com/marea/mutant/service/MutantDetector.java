@@ -1,62 +1,96 @@
-
 package com.marea.mutant.service;
 
 import org.springframework.stereotype.Component;
+import java.util.Set;
 
 @Component
 public class MutantDetector {
 
-    // Return true if more than one sequence of 4 equal letters is found
+    // Optimización pedida por el profesor (Uso de Set.of)
+    private static final Set<Character> VALID_BASES = Set.of('A', 'T', 'C', 'G');
+    private static final int SEQUENCE_LIMIT = 4;
+
     public boolean isMutant(String[] dna) {
         validate(dna);
+
         int n = dna.length;
-        char[][] mat = new char[n][n];
-        for (int i = 0; i < n; i++) mat[i] = dna[i].toUpperCase().toCharArray();
+        char[][] matrix = new char[n][n];
 
-        int sequences = 0;
-        // directions: right, down, diag down-right, diag down-left
-        int[][] dirs = {{0,1},{1,0},{1,1},{1,-1}};
+        // Convertimos a matriz de caracteres para acceso rápido
+        for (int i = 0; i < n; i++) {
+            matrix[i] = dna[i].toUpperCase().toCharArray();
+        }
 
-        for (int i=0;i<n;i++) {
-            for (int j=0;j<n;j++) {
-                char base = mat[i][j];
-                if (!isValidBase(base)) continue;
-                for (int[] d : dirs) {
-                    if (checkFrom(mat, i, j, d[0], d[1])) {
-                        sequences++;
-                        if (sequences > 1) return true;
-                    }
-                }
+        int sequencesFound = 0;
+
+        // Recorremos la matriz
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                // Si encontramos más de 1 secuencia, cortamos (Early Termination)
+                if (sequencesFound > 1) return true;
+
+                // Búsqueda en 4 direcciones
+                if (checkHorizontal(matrix, i, j, n)) sequencesFound++;
+                if (checkVertical(matrix, i, j, n)) sequencesFound++;
+                if (checkDiagonal(matrix, i, j, n)) sequencesFound++;
+                if (checkAntiDiagonal(matrix, i, j, n)) sequencesFound++;
             }
         }
-        return false;
-    }
 
-    private boolean checkFrom(char[][] mat, int i, int j, int di, int dj) {
-        int n = mat.length;
-        int count = 1;
-        int r = i + di, c = j + dj;
-        while (r >= 0 && r < n && c >= 0 && c < n && mat[r][c] == mat[i][j]) {
-            count++;
-            if (count == 4) return true;
-            r += di; c += dj;
-        }
-        return false;
-    }
-
-    private boolean isValidBase(char b) {
-        return b == 'A' || b == 'T' || b == 'C' || b == 'G';
+        return sequencesFound > 1;
     }
 
     private void validate(String[] dna) {
-        if (dna == null) throw new IllegalArgumentException("dna is null");
+        if (dna == null) throw new IllegalArgumentException("El ADN no puede ser nulo");
+        if (dna.length == 0) throw new IllegalArgumentException("El ADN no puede estar vacío");
+
         int n = dna.length;
-        if (n == 0) throw new IllegalArgumentException("dna empty");
-        for (String s : dna) {
-            if (s == null || s.length() != n) throw new IllegalArgumentException("dna must be NxN");
-            for (char c : s.toUpperCase().toCharArray()) {
-                if (!isValidBase(c)) throw new IllegalArgumentException("invalid base: " + c);
+        for (String row : dna) {
+            if (row == null) throw new IllegalArgumentException("El ADN no puede tener filas nulas");
+            if (row.length() != n) throw new IllegalArgumentException("El ADN debe ser cuadrado (NxN)");
+
+            // Validación optimizada con Set
+            for (char c : row.toUpperCase().toCharArray()) {
+                if (!VALID_BASES.contains(c)) {
+                    throw new IllegalArgumentException("Carácter inválido en ADN: " + c);
+                }
             }
         }
+    }
+
+    private boolean checkHorizontal(char[][] mat, int i, int j, int n) {
+        if (j + SEQUENCE_LIMIT > n) return false;
+        char base = mat[i][j];
+        for (int k = 1; k < SEQUENCE_LIMIT; k++) {
+            if (mat[i][j + k] != base) return false;
+        }
+        return true;
+    }
+
+    private boolean checkVertical(char[][] mat, int i, int j, int n) {
+        if (i + SEQUENCE_LIMIT > n) return false;
+        char base = mat[i][j];
+        for (int k = 1; k < SEQUENCE_LIMIT; k++) {
+            if (mat[i + k][j] != base) return false;
+        }
+        return true;
+    }
+
+    private boolean checkDiagonal(char[][] mat, int i, int j, int n) {
+        if (i + SEQUENCE_LIMIT > n || j + SEQUENCE_LIMIT > n) return false;
+        char base = mat[i][j];
+        for (int k = 1; k < SEQUENCE_LIMIT; k++) {
+            if (mat[i + k][j + k] != base) return false;
+        }
+        return true;
+    }
+
+    private boolean checkAntiDiagonal(char[][] mat, int i, int j, int n) {
+        if (i + SEQUENCE_LIMIT > n || j - SEQUENCE_LIMIT + 1 < 0) return false;
+        char base = mat[i][j];
+        for (int k = 1; k < SEQUENCE_LIMIT; k++) {
+            if (mat[i + k][j - k] != base) return false;
+        }
+        return true;
     }
 }

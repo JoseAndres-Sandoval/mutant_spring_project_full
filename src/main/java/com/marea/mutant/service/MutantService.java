@@ -1,7 +1,6 @@
-
 package com.marea.mutant.service;
 
-import com.marea.mutant.model.DnaRecord;
+import com.marea.mutant.entity.DnaRecord;
 import com.marea.mutant.repo.DnaRecordRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +10,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Optional;
 
 @Service
 public class MutantService {
@@ -26,11 +26,22 @@ public class MutantService {
     @Transactional
     public boolean verifyAndSave(String[] dna) {
         String hash = hashDna(dna);
-        if (repo.findByDnaHash(hash).isPresent()) {
-            return repo.findByDnaHash(hash).get().isMutant();
+
+        // Verificamos si ya existe en BD (Cache)
+        Optional<DnaRecord> existing = repo.findByDnaHash(hash);
+        if (existing.isPresent()) {
+            return existing.get().isMutant();
         }
+
+        // Si no existe, analizamos
         boolean isMutant = detector.isMutant(dna);
-        DnaRecord r = new DnaRecord(hash, isMutant);
+
+        // CORRECCIÓN AQUÍ: Usamos el Builder de Lombok en lugar de new DnaRecord(...)
+        DnaRecord r = DnaRecord.builder()
+                .dnaHash(hash)
+                .isMutant(isMutant)
+                .build();
+
         repo.save(r);
         return isMutant;
     }
@@ -41,7 +52,7 @@ public class MutantService {
             byte[] h = md.digest(String.join("|", dna).getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(h);
         } catch (NoSuchAlgorithmException e) {
-            // fallback
+            // fallback simple en caso extremo
             return String.valueOf(Arrays.hashCode(dna));
         }
     }
